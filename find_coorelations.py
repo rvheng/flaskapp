@@ -28,6 +28,8 @@ for i, table in enumerate(tables):
     else:
         sql_dataset_natural_join += " natural join {0}".format(table[0])
 
+print(sql_dataset_natural_join)
+
 # Initialize SQL Alchemy Connection for Pandas
 di = data_import.DataImport()
 eng = di.init_database()
@@ -49,7 +51,7 @@ mask = (sorted_series < .9) & (sorted_series > .7)
 
 sorted_series_filtered = sorted_series[mask]
 
-print(sorted_series_filtered.to_dict())
+#print(sorted_series_filtered.to_dict())
 
 correlations = sorted_series_filtered.to_dict()
 
