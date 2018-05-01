@@ -5,7 +5,7 @@ import sqlalchemy
 from _mysql_exceptions import DataError
 from sqlalchemy.exc import DataError
 from sqlalchemy.exc import OperationalError
-
+import ntpath
 
 class DataImport:
 
@@ -108,7 +108,9 @@ class DataImport:
 
         print("Processing: ", csv)
 
-        csv_file_name = csv.split('\\')[-1]
+        csv_file_name = ntpath.basename(csv)
+
+        print("basename: ", csv_file_name)
 
         table_name, extension = csv_file_name.split('.')
 
