@@ -1,0 +1,35 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<div style="height: 50px; margin:auto; width:50%; top: 60px; position: relative;">
+  <h6 style="text-align:center;">Select Table to view</h6>
+  <form style="text-align:center;" action="" method="POST">
+    <label>Select :</label>
+    <select name="option" width="300px">
+      {% for x in table_names %}
+      <option value="{{ x }}"{% if loop.first %} SELECTED{% endif %}>{{ x }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+<div style="position:absolute; top: 120px; left: 50px; right: 50px; bottom:30px; overflow: scroll;">
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        {% for h in headers %}
+        <th> {{ h }} </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for rows in results %}
+      <tr>
+          {% for h in headers %}
+          <td> {{ rows[h] }}  </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+{% endblock %}
