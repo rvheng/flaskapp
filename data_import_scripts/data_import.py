@@ -13,6 +13,7 @@ class DataImport:
         self.current_directory = os.getcwd()
         self.data_directory = os.path.join(self.current_directory, "raw_data")
         self.data_directory_asm = os.path.join(self.data_directory, "asm_data")
+        self.data_directory_gasoline = os.path.join(self.data_directory,"gasoline_prices")
         self.processed_directory = os.path.join(self.current_directory, "processed_data")
         self.table_prefix = "dataset_"
         self.database_schema = "myflaskapp"
@@ -28,6 +29,8 @@ class DataImport:
             return self.data_directory
         elif type == "asm":
             return self.data_directory_asm
+        elif type == "gasoline_prices":
+            return self.data_directory_gasoline
 
     def get_processed_directory(self):
         return self.processed_directory
@@ -129,6 +132,37 @@ class DataImport:
             print("Processed DF: ", df)
 
             return df
+        elif data_source_type == "gasoline_prices":
+            # Read CSV into Pandas
+            df = pandas.read_csv(csv)
+
+            # Get the Metadata
+            max_year = df['YEAR'].max()
+            min_year = df['YEAR'].min()
+
+            # The value will be the column other than YEAR
+            value = [x for x in list(df.columns) if x not in ["YEAR"]]
+
+            value = value[0]
+
+            # The description will be the raw string values in the column header
+            value_desc = str(value)
+
+            # The value will the the string with spaces replaced
+            value = value.replace(" ","_")
+
+            # Table name will be prepended with datasource
+            table_name = "datasource_" + str(value)
+
+            # Insert Meta Data
+            engine.execute(
+                "INSERT INTO {0}.{1} (tbl_name,val,min_year,max_year,val_desc,source) values ('{2}','{3}','{4}','{5}','{6}','{7}')".format(
+                    self.database_schema, self.meta_data_tbl,
+                    table_name, value, min_year, max_year,
+                    value_desc, "AAA"))
+
+            return df
+
 
     def import_data(self, df, csv, engine, table_name, drop_strings=False):
         # csv should be a full path
