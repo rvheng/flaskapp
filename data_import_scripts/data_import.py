@@ -13,7 +13,7 @@ class DataImport:
         self.current_directory = os.getcwd()
         self.data_directory = os.path.join(self.current_directory, "raw_data")
         self.data_directory_asm = os.path.join(self.data_directory, "asm_data")
-        self.data_directory_gasoline = os.path.join(self.data_directory,"gasoline_prices")
+        self.data_directory_gasoline = os.path.join(self.data_directory, "gasoline_prices")
         self.processed_directory = os.path.join(self.current_directory, "processed_data")
         self.table_prefix = "dataset_"
         self.database_schema = "myflaskapp"
@@ -88,6 +88,12 @@ class DataImport:
             'CREATE TABLE IF NOT EXISTS {0}.data_sources_meta_data (tbl_name varchar(500),val varchar(500),min_year varchar(4),max_year varchar(4),val_desc varchar(1000),source varchar(300),PRIMARY KEY (tbl_name))'.format(
                 self.database_schema))
 
+        engine.execute(
+            'CREATE TABLE IF NOT EXISTS {0}.correlations (dataset1_table_name varchar(500),dataset2_table_name varchar(500),correlation_coefficient decimal(4,4),PRIMARY KEY (dataset1_table_name,dataset2_table_name))'.format(
+                self.database_schema))
+
+        # Create the correlations table if not already exist
+
         # Get the database engine for our schema
         engine = create_engine(
             'mysql://{0}:{1}@localhost/{2}?charset=utf8mb4'.format(self.database_user, self.database_pw,
@@ -102,6 +108,12 @@ class DataImport:
 
         print("Processing: ", csv)
 
+        csv_file_name = csv.split('\\')[-1]
+
+        table_name, extension = csv_file_name.split('.')
+
+        print("table name:", table_name)
+
         if data_source_type == "asm":
             # Read CSV into Pandas
             df = pandas.read_csv(csv)
@@ -111,7 +123,7 @@ class DataImport:
             min_year = df['YEAR'].min()
             value = df['PSCODE'].min()
             value_desc = df['PSCODE_TTL'].min()
-            table_name = "datasource_" + str(value)
+            table_name = "dataset_" + str(table_name)
 
             # Insert Meta Data
             engine.execute(
@@ -149,10 +161,10 @@ class DataImport:
             value_desc = str(value)
 
             # The value will the the string with spaces replaced
-            value = value.replace(" ","_")
+            value = value.replace(" ", "_")
 
             # Table name will be prepended with datasource
-            table_name = "datasource_" + str(value)
+            table_name = "dataset_" + str(table_name)
 
             # Insert Meta Data
             engine.execute(
@@ -162,7 +174,6 @@ class DataImport:
                     value_desc, "AAA"))
 
             return df
-
 
     def import_data(self, df, csv, engine, table_name, drop_strings=False):
         # csv should be a full path
