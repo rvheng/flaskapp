@@ -17,7 +17,7 @@ class DataImport:
         self.processed_directory = os.path.join(self.current_directory, "processed_data")
         self.table_prefix = "dataset_"
         self.database_schema = "myflaskapp"
-        self.database_user = "flask"
+        self.database_user = "root"
         self.database_pw = "password"
         self.meta_data_tbl = "data_sources_meta_data"
 
@@ -114,6 +114,7 @@ class DataImport:
 
         table_name, extension = csv_file_name.split('.')
 
+        table_name = table_name.lower()
         print("table name:", table_name)
 
         if data_source_type == "asm":

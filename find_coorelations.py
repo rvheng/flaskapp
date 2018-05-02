@@ -38,7 +38,7 @@ eng = di.init_database()
 df = pd.read_sql(sql_dataset_natural_join, eng)
 
 # Drop the YEAR column since we don't want to correlate this
-df.drop(columns=['YEAR'], inplace=True)
+#df.drop(columns=['YEAR'], inplace=True)
 
 # The next couple of lines I found on stack exchange and modified the code.
 correlated_df = df.corr().abs()

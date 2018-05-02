@@ -29,8 +29,8 @@ def index():
 @app.route('/graph')
 def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
-    col = 'new_york_state_average'
-    table = 'gasoline_retail_prices'
+    col = 'PRODVAL_311119B'
+    table = 'dataset_asm_product_311119b'
     statement = 'select ' + col + ' from ' + table + ' ;'
     # Create cursor
     cur = mysql.connection.cursor()
@@ -39,7 +39,7 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
     data_series = [x[col] for x in results]
     cur.close()
     chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
-    series = [{"name": col ,"data": data_series}]
+    series = [{"name": col ,"data": data_series}, {"name": col }]
     title = {"text": table}
     xAxis = {"categories": []}
     yAxis = {"title": {"text": table}, "format": '{value:.2f}'}
