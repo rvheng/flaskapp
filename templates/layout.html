@@ -7,9 +7,11 @@
 	</head>
 	<body>
 		{% include '/includes/_navbar.html' %}
-		<div class="container">
-        {% include '/includes/_messages.html'%}
-		{% block body %}{% endblock %}
+		<div class="container" style="position:absolute; top:60px; left:50px;">
+    {% include '/includes/_messages.html'%}
+		<div>
+			{% block body %}{% endblock %}
+		</div>
 		</div>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
 	</body>

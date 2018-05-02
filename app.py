@@ -24,25 +24,31 @@ mysql = MySQL(app)
 
 @app.route('/')
 def index():
-        return render_template('home.html')
+    return render_template('home.html')
 
 @app.route('/graph')
 def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
-    col = 'PRODVAL_311119B'
-    table = 'dataset_asm_product_311119b'
-    statement = 'select ' + col + ' from ' + table + ' ;'
+    table1 = 'dataset_asm_product_311119b'
+    table2 = 'dataset_asm_product_311119m'
+
+    statement = 'select * from ' + table1 + ' natural join ' + table2 + ' ;'
     # Create cursor
     cur = mysql.connection.cursor()
     cur.execute(statement)
+    headers = [i[0] for i in cur.description]
+    col1 = headers[1]
+    col2 = headers[2]
     results = cur.fetchall()
-    data_series = [x[col] for x in results]
+    years = [x['YEAR'] for x in results]
+    data_series1 = [x[col1] for x in results]
+    data_series2 = [x[col2] for x in results]
     cur.close()
     chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
-    series = [{"name": col ,"data": data_series}, {"name": col }]
-    title = {"text": table}
-    xAxis = {"categories": []}
-    yAxis = {"title": {"text": table}, "format": '{value:.2f}'}
+    series = [{"name": col1 ,"data": data_series1}, {"name": col2 ,"data": data_series2}]
+    title = {"text": table1}
+    xAxis = {"categories": years}
+    yAxis = {"title": {"text": table1}, "format": '{value:.2f}'}
     return render_template('graph.html', chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
 
 @app.route('/import')
@@ -51,39 +57,91 @@ def importData():
 
 @app.route('/upload', methods = ['GET', 'POST'])
 def upload():
-    if request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-        file = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
-        if file:
-            filename = file.filename
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            f_name, f_extension = os.path.splitext(filename)
-            populate(f_name)
-            return redirect('import')
+    try:
+        if request.method == "POST":
+            # Get values from the form
+            attempted_datatable_name = request.form['tablename']
+            attempted_datavalue = request.form['datavalue']
+            attempted_description = request.form['description']
+            attempted_source = request.form['source']
 
-    return render_template('import.html')
+            # Validation for field values
+            if attempted_datatable_name == '':
+                flash('Table name cannot be empty')
+                return redirect(request.url)
+            if attempted_datavalue == '':
+                flash('Value cannot be empty')
+                return redirect(request.url)
+            if attempted_description == '':
+                flash('Description cannot be empty')
+                return redirect(request.url)
+            if attempted_source == '':
+                flash('Source cannot be empty')
+                return redirect(request.url)
 
-# Gets called on upload
-def populate(fname):
-    tablename = fname
-    filename = app.config['UPLOAD_FOLDER'] + '/' + tablename + '.csv'
-    f = open(filename, 'r')
+            # check if the post request has the file part
+            if 'file' not in request.files:
+                flash('No file part')
+                return redirect(request.url)
+            f = request.files['file']
+            # if user does not select file, browser also
+            # submit an empty part without filename
+            if f.filename == '':
+                flash('No selected file')
+                return redirect(request.url)
+            if f:
+                filename = f.filename
+                f.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                f_name, f_extension = os.path.splitext(filename)
+                csv_file = app.config['UPLOAD_FOLDER'] + '/' + filename
+                with open(csv_file, 'r') as csvfile:
+                    reader = csv.reader(csvfile)
+                    headers = next(reader)
+                    # csv needs to be in form {YEAR, whatever}. Check that
+                    if len(headers) != 2:
+                        flash('File has more than two Fields')
+                        return redirect(request.url)
+                    if headers[0] != 'YEAR':
+                        flash('File needs to be exactly two fields [YEAR, value]')
+                        return redirect(request.url)
+                    # If the csv is in the correct format, compute the min/max of years
+                    years = []
+                    for row in reader:
+                        years.append(row[0])
+                # Done with reading the csv, now if everything is good, insert to that meta data table
+                min_year = min(years)
+                max_year = max(years)
+                attempted_datatable_name = attempted_datatable_name.replace(" ", "_")
+                attempted_datavalue = attempted_datavalue.replace(" ", "_")
+
+                cur = mysql.connection.cursor()
+                cur.execute('insert into data_sources_meta_data (tbl_name, val, min_year, max_year, val_desc, source) values (%s,%s,%s,%s,%s,%s)',(attempted_datatable_name, attempted_datavalue, min_year, max_year, attempted_description, attempted_source))
+                mysql.connection.commit()
+                cur.close()
+
+                populate(csv_file, attempted_datatable_name)
+
+                flash('Successfully Imported Database')
+                return redirect('import')
+
+            return redirect(url_for('importData'))
+
+        return render_template("import.html")
+
+    except Exception as e:
+        flash(e)
+        return render_template("import.html")
+
+def populate(csvfile, tname):
+    tablename = tname
+    f = open(csvfile, 'r')
     reader = csv.reader(f)
 
     # Arrays to store columns and their datatypes
     data, headers, type_list = [], [], []
-
     clean_data, clean_headers, clean_type = [], [], []
 
-    # We can iterate over the rows in our CSV, call our function above, and populate our lists.
+    # We can iterate over the rows in our CSV, call the dataType function to check its datatype and populate
     for row in reader:
         if len(headers) == 0:
             headers = [k.replace(" ", "_") for k in row]
@@ -181,21 +239,16 @@ def tables():
     cursor = mysql.connection.cursor()
     cursor.execute('select table_name from information_schema.tables where table_schema = "myflaskapp";')
     table_names = [x['table_name'] for x in cursor.fetchall()]
-
-    cursor.execute('select * from gasoline_retail_prices;')
+    table = table_names[3];
+    statement = 'select * from ' + table + ';'
+    cursor.execute(statement)
     headers = [i[0] for i in cursor.description]
     results = cursor.fetchall()
     cursor.close()
     # Keep only 20 records
-    results = results[0:20]
+    if len(results) > 20:
+        results = results[0:20]
     return render_template('tables.html', table_names=table_names, headers=headers, results=results)
-
-@app.route('/draw', methods = ['GET', 'POST'])
-def draw():
-    if request.method == 'POST':
-        return redirect('tables')
-
-    return render_template('tables.html')
 
 if __name__ == '__main__':
     app.secret_key='secretkey123'
