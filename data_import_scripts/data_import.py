@@ -6,6 +6,8 @@ from _mysql_exceptions import DataError
 from sqlalchemy.exc import DataError
 from sqlalchemy.exc import OperationalError
 import ntpath
+import MySQLdb
+
 
 class DataImport:
 
@@ -20,6 +22,8 @@ class DataImport:
         self.database_user = "root"
         self.database_pw = "password"
         self.meta_data_tbl = "data_sources_meta_data"
+        self.correlations_table = "correlations"
+        self.data_sources_meta_data_table = "data_sources_meta_data"
 
     def get_current_directory(self):
         return self.current_directory
@@ -125,6 +129,7 @@ class DataImport:
             max_year = df['YEAR'].max()
             min_year = df['YEAR'].min()
             value = df['PSCODE'].min()
+            value = "VAL_" + str(value)
             value_desc = df['PSCODE_TTL'].min()
             table_name = "dataset_" + str(table_name)
 
@@ -136,8 +141,7 @@ class DataImport:
                     value_desc, "census"))
 
             # Rename val column
-            value_column_name = "PRODVAL_" + str(value)
-            df.rename(columns={"PRODVAL": value_column_name}, inplace=True)
+            df.rename(columns={"PRODVAL": value}, inplace=True)
 
             # Drop Unnecessary Columns
             delete_columns = ['PSCODE', 'PSCODE_TTL', 'time', 'PSCODE.1', 'us']
@@ -160,11 +164,22 @@ class DataImport:
 
             value = value[0]
 
+            original_column_name = value
+
             # The description will be the raw string values in the column header
             value_desc = str(value)
 
             # The value will the the string with spaces replaced
             value = value.replace(" ", "_")
+
+            value = "VAL_" + str(value)
+
+            # Rename val column
+            df.rename(columns={original_column_name: value}, inplace=True)
+
+            print("original column name: ", original_column_name)
+
+            print("new column name: ", value)
 
             # Table name will be prepended with datasource
             table_name = "dataset_" + str(table_name)
@@ -235,3 +250,36 @@ class DataImport:
 
             # Import the csv.
             self.import_data(filtered_data_frame, csv, engine, table_name, drop_strings=False)
+
+    def insert_correlation(self, table_one, table_two, correlation_coefficient):
+
+        # Connect to the database with no schema specified
+        engine = create_engine('mysql://{0}:{1}@localhost'.format(self.database_user, self.database_pw))
+
+        sql = "INSERT IGNORE INTO {0}.{1} (dataset1_table_name,dataset2_table_name,correlation_coefficient) VALUES ('{2}','{3}',{4})".format(
+            self.database_schema, self.correlations_table, table_one,
+            table_two, correlation_coefficient)
+
+        # Create the schema if it does not already exist
+        engine.execute(sql)
+
+    def map_val_to_table_name(self, val):
+
+        # Initialize Database Connection
+        db = MySQLdb.connect(host="localhost", user=self.database_user, passwd=self.database_pw,
+                             db=self.database_schema)
+
+        sql = "SELECT tbl_name FROM {0}.{1} WHERE val ='{2}'".format(
+            self.database_schema, self.data_sources_meta_data_table, val)
+
+        db.query(sql)
+
+        # Store the result
+        result = db.store_result()
+
+        # Fetch all the result rows
+        row = result.fetch_row(maxrows=1, how=1)
+
+        result = row[0].get('tbl_name')
+
+        return result
