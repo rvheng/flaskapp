@@ -199,6 +199,10 @@ class DataImportMongo:
 
         db = mongo_conn.myflaskapp
 
+        # Prepend the document name with the prefix
+        document_name = self.document_prefix + document_name
+
+        # Create a new document in the database
         new_document = db['{}'.format(document_name)]
 
         file_path = os.path.join(csv)
@@ -206,9 +210,6 @@ class DataImportMongo:
         data = df.to_dict(orient='records')
 
         final_arr = []
-
-        print("data below")
-        print(data)
 
         # Pandas was saving numbers as Objects. We need to cast them back to strings
         for dict in data:
