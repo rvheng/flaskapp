@@ -26,11 +26,36 @@ mysql = MySQL(app)
 def index():
     return render_template('home.html')
 
-@app.route('/graph')
+@app.route('/graph', methods =['GET','POST'])
 def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
+    # Initial Values. Will change based on selections
     table1 = 'dataset_asm_product_311119b'
     table2 = 'dataset_asm_product_311119m'
+
+    try:
+        if request.method == "POST":
+            selection = request.form.get('graphselect')
+            if table1 != selection:
+                table2 = selection
+            flash(selection)
+
+        cursor = mysql.connection.cursor()
+        cursor.execute('select table_name from information_schema.tables where table_schema = "myflaskapp";')
+        table_names = [x['table_name'] for x in cursor.fetchall()]
+        table = table_names[3];
+        statement = 'select * from ' + table + ';'
+        cursor.execute(statement)
+        headers = [i[0] for i in cursor.description]
+        results = cursor.fetchall()
+        cursor.close()
+        # Keep only 20 records
+        if len(results) > 20:
+            results = results[0:20]
+
+    except Exception as e:
+        flash(e)
+        return render_template("sgraph.html")
 
     statement = 'select * from ' + table1 + ' natural join ' + table2 + ' ;'
     # Create cursor
@@ -49,7 +74,7 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
     title = {"text": table1}
     xAxis = {"categories": years}
     yAxis = {"title": {"text": table1}, "format": '{value:.2f}'}
-    return render_template('graph.html', chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
+    return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
 
 @app.route('/import')
 def importData():

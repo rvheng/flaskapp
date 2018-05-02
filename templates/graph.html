@@ -1,7 +1,20 @@
 {% extends 'layout.html' %}
 
 {% block body %}
-<div id={{ chartID|safe }} class="chart" style="height: 100px; width: 500px"></div>
+<div style="margin:auto; width:50%; top: 60px; display:block; float:none;">
+  <h6 style="text-align:center;">Select Table to view</h6>
+  <form style="text-align:center;" action="{{ url_for('graph')}}" method="POST">
+    <label>Select :</label>
+    <select name="graphselect" width="300px">
+      {% for x in table_names %}
+      <option value="{{ x }}"{% if loop.first %} SELECTED{% endif %}>{{ x }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-default">Show Graph</button>
+  </form>
+</div>
+
+<div id={{ chartID|safe }} class="chart" style="height: 100px; width: 500px display:block; float:none;"></div>
 		<script>
 			var chart_id = {{ chartID|safe }}
 			var series = {{ series|safe }}
@@ -15,4 +28,3 @@
 			<script src="../static/graph.js"></script>
 
 {% endblock %}
-
