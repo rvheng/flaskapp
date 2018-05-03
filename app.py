@@ -19,16 +19,17 @@ app.config['MYSQL_PASSWORD'] = 'password'
 app.config['MYSQL_DB'] = 'myflaskapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
-#init MYSQL
+# init MYSQL
 mysql = MySQL(app)
+
 
 @app.route('/')
 def index():
     return render_template('home.html')
 
-@app.route('/graph', methods =['GET','POST'])
-def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
+@app.route('/graph', methods=['GET', 'POST'])
+def graph(chartID='chart_ID', chart_type='line', chart_height=500):
     # Initial Values. Will change based on selections
     table1 = ""
     table2 = ""
@@ -37,9 +38,9 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
         if request.method == "POST":
             # The form sends back a string, so we clean it
             selection = request.form.get('graphselect')
-            selection = selection.replace("('","")
-            selection = selection.replace("')","")
-            selection = selection.replace("', '"," ")
+            selection = selection.replace("('", "")
+            selection = selection.replace("')", "")
+            selection = selection.replace("', '", " ")
             # extract the tuples
             line = selection.split()
             table1 = line[0]
@@ -57,7 +58,7 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
         data_set1 = [x[col1] for x in results]
         data_set2 = [x[col2] for x in results]
         coefficients = [x[col3] for x in results]
-        table_names = zip(data_set1,data_set2)
+        table_names = zip(data_set1, data_set2)
         cursor.close()
 
         if table1 == "":
@@ -91,29 +92,31 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
         cur.close()
 
         # Set up Highcharts
-        chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
+        chart = {"renderTo": chartID, "type": chart_type, "height": chart_height, }
         series = [{"name": col1, "data": data_series1}, {"name": col2, "data": data_series2, "yAxis": 1}]
-        title = {"text": chart_title }
+        title = {"text": chart_title}
         xAxis = {"title": {"text": "Years"}, "categories": years}
-        yAxis = [{"title": {"text": table1}, "format": '{value:.2f}'},{"title": {"text": table2}, "format": '{value:.2f}'}]
-        return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
+        yAxis = [{"title": {"text": table1}, "format": '{value:.2f}'},
+                 {"title": {"text": table2}, "format": '{value:.2f}'}]
+        return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series,
+                               title=title, xAxis=xAxis, yAxis=yAxis)
     except Exception as e:
         flash(e)
         return render_template("graph.html")
-
 
 
 @app.route('/import')
 def importData():
     return render_template('import.html')
 
-@app.route('/upload', methods = ['GET', 'POST'])
+
+@app.route('/upload', methods=['GET', 'POST'])
 def upload():
     try:
         if request.method == "POST":
             # Get values from the form
-            attempted_datatable_name = request.form['tablename']
-            attempted_datavalue = request.form['datavalue']
+            attempted_datatable_name = str("dataset_" + request.form['tablename']).replace(" ", "_")
+            attempted_datavalue = str(request.form['datavalue']).replace(" ", "_")
             attempted_description = request.form['description']
             attempted_source = request.form['source']
 
@@ -167,7 +170,10 @@ def upload():
                 attempted_datavalue = attempted_datavalue.replace(" ", "_")
 
                 cur = mysql.connection.cursor()
-                cur.execute('insert into data_sources_meta_data (tbl_name, val, min_year, max_year, val_desc, source) values (%s,%s,%s,%s,%s,%s)',(attempted_datatable_name, attempted_datavalue, min_year, max_year, attempted_description, attempted_source))
+                cur.execute(
+                    'insert into data_sources_meta_data (tbl_name, val, min_year, max_year, val_desc, source) values (%s,%s,%s,%s,%s,%s)',
+                    (attempted_datatable_name, attempted_datavalue, min_year, max_year, attempted_description,
+                     attempted_source))
                 mysql.connection.commit()
                 cur.close()
 
@@ -183,6 +189,7 @@ def upload():
     except Exception as e:
         flash(e)
         return render_template("import.html")
+
 
 def populate(csvfile, tname):
     tablename = tname
@@ -227,7 +234,7 @@ def populate(csvfile, tname):
     cur = mysql.connection.cursor()
 
     ### Region: Create Table based on clean csv header ###
-    create_statement = 'create table ' + tablename +' ('
+    create_statement = 'create table ' + tablename + ' ('
 
     for i in range(len(clean_headers)):
         create_statement = (create_statement + '{} {}' + ',').format(clean_headers[i], clean_type[i])
@@ -241,7 +248,7 @@ def populate(csvfile, tname):
 
     ### Region: Insert into table clean (non string) data  ###
     for row in clean_data:
-        insert_statement = 'insert into ' + tablename +' ('
+        insert_statement = 'insert into ' + tablename + ' ('
 
         for header in clean_headers:
             insert_statement = (insert_statement + '{}' + ',').format(header)
@@ -253,7 +260,7 @@ def populate(csvfile, tname):
 
         insert_statement = insert_statement[:-1] + ');'
 
-            # Execute and commit to DB
+        # Execute and commit to DB
         cur.execute(insert_statement)
         mysql.connection.commit()
     ### EndRegion ###
@@ -261,6 +268,7 @@ def populate(csvfile, tname):
     # Close Connection
     cur.close()
     return
+
 
 #  find the data type for each row
 def dataType(val, current_type):
@@ -286,9 +294,9 @@ def dataType(val, current_type):
         else:
             return 'varchar'
 
-@app.route('/tables', methods =['GET','POST'])
-def tables():
 
+@app.route('/tables', methods=['GET', 'POST'])
+def tables():
     try:
         table = ""
         if request.method == "POST":
@@ -315,7 +323,6 @@ def tables():
         return render_template("tables.html")
 
 
-
 if __name__ == '__main__':
-    app.secret_key='secretkey123'
+    app.secret_key = 'secretkey123'
     app.run(debug=True)

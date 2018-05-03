@@ -10,8 +10,12 @@ from data_import_scripts import data_import
 # Initialize Database Connection
 db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="myflaskapp")
 
+db.query("DROP TABLE IF EXISTS correlations")
+
 # Select all the data source tables
 db.query("SELECT tbl_name FROM data_sources_meta_data")
+
+
 
 # Store the result
 result = db.store_result()
