@@ -92,10 +92,10 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
         # Set up Highcharts
         chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
-        series = [{"name": col1, "data": data_series1}, {"name": col2, "data": data_series2}]
+        series = [{"name": col1, "data": data_series1}, {"name": col2, "data": data_series2, "yAxis": 1}]
         title = {"text": chart_title }
         xAxis = {"title": {"text": "Years"}, "categories": years}
-        yAxis = {"title": {"text": table1}, "format": '{value:.2f}'}
+        yAxis = [{"title": {"text": table1}, "format": '{value:.2f}'},{"title": {"text": table2}, "format": '{value:.2f}'}]
         return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
     except Exception as e:
         flash(e)
