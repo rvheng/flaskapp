@@ -38,7 +38,7 @@ eng = di.init_database()
 df = pd.read_sql(sql_dataset_natural_join, eng)
 
 # Drop the YEAR column since we don't want to correlate this
-#df.drop(columns=['YEAR'], inplace=True)
+df.drop(columns=['YEAR'], inplace=True)
 
 # The next couple of lines I found on stack exchange and modified the code.
 correlated_df = df.corr().abs()
@@ -51,6 +51,8 @@ mask = (sorted_series < .9) & (sorted_series > .7)
 
 sorted_series_filtered = sorted_series[mask]
 
+print(sorted_series_filtered)
+
 # print(sorted_series_filtered.to_dict())
 
 correlations_table = "correlations"
@@ -58,10 +60,12 @@ correlations_table = "correlations"
 correlations = sorted_series_filtered.to_dict()
 
 for correlation, correlation_coefficient in correlations.items():
-    table1 = di.map_val_to_table_name(correlation[0])
-    table2 = di.map_val_to_table_name(correlation[1])
-    # Select all the data source tables
-    di.insert_correlation(table1, table2, round(correlation_coefficient, 4))
+
+   # if correlation[0] != "YEAR" and correlation[1] != "YEAR":
+        table1 = di.map_val_to_table_name(correlation[0])
+        table2 = di.map_val_to_table_name(correlation[1])
+        # Select all the data source tables
+        di.insert_correlation(table1, table2, round(correlation_coefficient, 4))
 
 # Step 1: Get a list of all the tables in the data_sources_meta_data table
 

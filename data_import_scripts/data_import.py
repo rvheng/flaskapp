@@ -272,6 +272,8 @@ class DataImport:
         sql = "SELECT tbl_name FROM {0}.{1} WHERE val ='{2}'".format(
             self.database_schema, self.data_sources_meta_data_table, val)
 
+        print(sql)
+
         db.query(sql)
 
         # Store the result
@@ -279,6 +281,8 @@ class DataImport:
 
         # Fetch all the result rows
         row = result.fetch_row(maxrows=1, how=1)
+
+        print(row)
 
         result = row[0].get('tbl_name')
 
