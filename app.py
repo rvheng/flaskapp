@@ -314,8 +314,6 @@ def tables():
         flash(e)
         return render_template("tables.html")
 
-
-
 if __name__ == '__main__':
     app.secret_key='secretkey123'
     app.run(debug=True)
