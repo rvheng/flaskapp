@@ -64,18 +64,20 @@ class DataAggregatorMongo:
         if self.aggregate_collection not in db.list_collection_names():
             db.create_collection('{}'.format(self.aggregate_collection))
 
-    def insert_into_aggregate_collection(self):
+    def insert_into_aggregate_collection(self, dataset_collections):
         client = self.connect_to_mongo()
 
         # Specify the database
         db = client['{}'.format(self.app_database)]
 
-        dataset_collection = db.get_collection('dataset_gasoline_retail_prices_new_york_city_new_york')
+        for dataset_name in dataset_collections:
 
-        cursor = dataset_collection.find({})
-        for document in cursor:
-            self.create_year_document(document['YEAR'])
-            self.insert_data_point_into_year_document(document)
+            dataset_collection = db.get_collection(dataset_name)
+
+            cursor = dataset_collection.find({})
+            for document in cursor:
+                self.create_year_document(document['YEAR'])
+                self.insert_data_point_into_year_document(document)
 
     def create_year_document(self, year):
         # Connect to Mongo
@@ -100,17 +102,27 @@ class DataAggregatorMongo:
         # Specify the database
         db = client['{}'.format(self.app_database)]
 
-        re.compile(r'^VAL_.*')
+        pattern_insert = re.compile(r'^VAL_.*')
 
-        doc = {}
+        pattern_search = re.compile(r'YEAR')
+
+        insert_doc = {}
+
+        search_doc = {}
 
         # Create the data point to be inserted
         for key, value in document.items():
-            if re.match(key):
-                doc = {key: value}
+            if re.match(pattern_insert, key):
+                insert_doc = {key: value}
+            elif re.match(pattern_search, key):
+                search_doc = {key: value}
 
-        
+        print("insert_doc: ", insert_doc)
+        print("search_doc: ", search_doc)
 
+        print(document)
+
+        db['{}'.format(self.aggregate_collection)].update(search_doc, {"$addToSet": {"DATA_POINTS": insert_doc}})
 
 
 di = DataAggregatorMongo()
@@ -122,4 +134,4 @@ di.create_data_aggregation_collection()
 # for dataset in dataset_collections:
 #   print(dataset)
 
-di.insert_into_aggregate_collection()
+di.insert_into_aggregate_collection(dataset_collections)
