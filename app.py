@@ -30,51 +30,78 @@ def index():
 def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
     # Initial Values. Will change based on selections
-    table1 = 'dataset_asm_product_311119b'
-    table2 = 'dataset_asm_product_311119m'
+    table1 = ""
+    table2 = ""
 
     try:
         if request.method == "POST":
+            # The form sends back a string, so we clean it
             selection = request.form.get('graphselect')
-            if table1 != selection:
-                table2 = selection
-            flash(selection)
+            selection = selection.replace("('","")
+            selection = selection.replace("')","")
+            selection = selection.replace("', '"," ")
+            # extract the tuples
+            line = selection.split()
+            table1 = line[0]
+            table2 = line[1]
 
+        # Get the correlation tables for the dropdown
         cursor = mysql.connection.cursor()
-        cursor.execute('select table_name from information_schema.tables where table_schema = "myflaskapp";')
-        table_names = [x['table_name'] for x in cursor.fetchall()]
-        table = table_names[3];
-        statement = 'select * from ' + table + ';'
-        cursor.execute(statement)
+        cursor.execute('select * from correlations;')
         headers = [i[0] for i in cursor.description]
+        # Assign col names based on the returned headers
+        col1 = headers[0]
+        col2 = headers[1]
+        col3 = headers[2]
         results = cursor.fetchall()
+        data_set1 = [x[col1] for x in results]
+        data_set2 = [x[col2] for x in results]
+        coefficients = [x[col3] for x in results]
+        table_names = zip(data_set1,data_set2)
         cursor.close()
-        # Keep only 20 records
-        if len(results) > 20:
-            results = results[0:20]
 
+        if table1 == "":
+            table1 = data_set1[0]
+        if table2 == "":
+            table2 = data_set2[0]
+
+        # Get the table descriptions
+        cur = mysql.connection.cursor()
+        desc1_statement = 'select val_desc from data_sources_meta_data where tbl_name = "' + table1 + '";'
+        cur.execute(desc1_statement)
+        desc1 = cur.fetchone()
+        desc1 = desc1.get('val_desc')
+        desc2_statement = 'select val_desc from data_sources_meta_data where tbl_name = "' + table2 + '";'
+        cur.execute(desc2_statement)
+        desc2 = cur.fetchone()
+        desc2 = desc2.get('val_desc')
+
+        chart_title = desc1 + ' CORRELATES WITH ' + desc2
+
+        # Get the data tables for the chart
+        statement = 'select * from ' + table1 + ' natural join ' + table2 + ';'
+        cur.execute(statement)
+        d_headers = [i[0] for i in cur.description]
+        col_1 = d_headers[1]
+        col_2 = d_headers[2]
+        res = cur.fetchall()
+        years = [x['YEAR'] for x in res]
+        data_series1 = [x[col_1] for x in res]
+        data_series2 = [x[col_2] for x in res]
+        cur.close()
+
+        # Set up Highcharts
+        chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
+        series = [{"name": col1, "data": data_series1}, {"name": col2, "data": data_series2}]
+        title = {"text": chart_title }
+        xAxis = {"title": {"text": "Years"}, "categories": years}
+        yAxis = {"title": {"text": table1}, "format": '{value:.2f}'}
+        return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
     except Exception as e:
         flash(e)
         return render_template("graph.html")
 
-    statement = 'select * from ' + table1 + ' natural join ' + table2 + ' ;'
-    # Create cursor
-    cur = mysql.connection.cursor()
-    cur.execute(statement)
-    headers = [i[0] for i in cur.description]
-    col1 = headers[1]
-    col2 = headers[2]
-    results = cur.fetchall()
-    years = [x['YEAR'] for x in results]
-    data_series1 = [x[col1] for x in results]
-    data_series2 = [x[col2] for x in results]
-    cur.close()
-    chart = {"renderTo": chartID, "type": chart_type, "height": chart_height,}
-    series = [{"name": col1 ,"data": data_series1}, {"name": col2 ,"data": data_series2}]
-    title = {"text": table1}
-    xAxis = {"categories": years}
-    yAxis = {"title": {"text": table1}, "format": '{value:.2f}'}
-    return render_template('graph.html', table_names=table_names, chartID=chartID, chart=chart, series=series, title=title, xAxis=xAxis, yAxis=yAxis)
+
 
 @app.route('/import')
 def importData():
