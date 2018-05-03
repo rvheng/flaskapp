@@ -40,11 +40,9 @@ df = pd.read_sql(sql_dataset_natural_join, eng)
 print(df)
 
 # Drop the YEAR column since we don't want to correlate this
-<<<<<<< HEAD
-df.drop('YEAR', axis =1, inplace=True)
-=======
+
 df.drop('YEAR', axis=1, inplace=True)
->>>>>>> 829dc6ec356a52670fbc17026b0aae96a38a67fc
+
 
 # The next couple of lines I found on stack exchange and modified the code.
 correlated_df = df.corr().abs()
