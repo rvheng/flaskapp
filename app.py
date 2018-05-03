@@ -55,7 +55,7 @@ def graph(chartID = 'chart_ID', chart_type = 'line', chart_height = 500):
 
     except Exception as e:
         flash(e)
-        return render_template("sgraph.html")
+        return render_template("graph.html")
 
     statement = 'select * from ' + table1 + ' natural join ' + table2 + ' ;'
     # Create cursor
@@ -259,21 +259,35 @@ def dataType(val, current_type):
         else:
             return 'varchar'
 
-@app.route('/tables')
+@app.route('/tables', methods =['GET','POST'])
 def tables():
-    cursor = mysql.connection.cursor()
-    cursor.execute('select table_name from information_schema.tables where table_schema = "myflaskapp";')
-    table_names = [x['table_name'] for x in cursor.fetchall()]
-    table = table_names[3];
-    statement = 'select * from ' + table + ';'
-    cursor.execute(statement)
-    headers = [i[0] for i in cursor.description]
-    results = cursor.fetchall()
-    cursor.close()
-    # Keep only 20 records
-    if len(results) > 20:
-        results = results[0:20]
-    return render_template('tables.html', table_names=table_names, headers=headers, results=results)
+
+    try:
+        table = ""
+        if request.method == "POST":
+            selection = request.form.get('tableselect')
+            table = selection
+
+        cursor = mysql.connection.cursor()
+        cursor.execute('select table_name from information_schema.tables where table_schema = "myflaskapp";')
+        table_names = [x['table_name'] for x in cursor.fetchall()]
+        if table == "":
+            table = table_names[3];
+        statement = 'select * from ' + table + ';'
+        cursor.execute(statement)
+        headers = [i[0] for i in cursor.description]
+        results = cursor.fetchall()
+        cursor.close()
+        # Keep only 20 records
+        if len(results) > 20:
+            results = results[0:20]
+        return render_template('tables.html', table_names=table_names, headers=headers, results=results)
+
+    except Exception as e:
+        flash(e)
+        return render_template("tables.html")
+
+
 
 if __name__ == '__main__':
     app.secret_key='secretkey123'

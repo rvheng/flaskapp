@@ -1,18 +1,19 @@
 {% extends 'layout.html' %}
 
 {% block body %}
-<div style="height: 50px; margin:auto; width:50%; top: 60px; position: relative;">
+<div style="margin:auto; width:50%; top: 60px; display:block; float:none;">
   <h6 style="text-align:center;">Select Table to view</h6>
-  <form style="text-align:center;" action="" method="POST">
+  <form style="text-align:center;" action="{{ url_for('tables')}}" method="POST">
     <label>Select :</label>
-    <select name="option" width="300px">
+    <select name="tableselect" width="300px">
       {% for x in table_names %}
       <option value="{{ x }}"{% if loop.first %} SELECTED{% endif %}>{{ x }}</option>
       {% endfor %}
     </select>
+    <button type="submit" class="btn btn-primary">Show Table</button>
   </form>
 </div>
-<div style="position:absolute; top: 120px; left: 50px; right: 50px; bottom:30px; overflow: scroll;">
+<div style="height: 250px; width: 600px; display:block; float:none; overflow: scroll; margin: auto;">
   <table class="table table-bordered">
     <thead>
       <tr>
