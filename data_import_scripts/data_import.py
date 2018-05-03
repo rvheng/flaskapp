@@ -131,14 +131,15 @@ class DataImport:
             value = df['PSCODE'].min()
             value = "VAL_" + str(value)
             value_desc = df['PSCODE_TTL'].min()
+            #value_desc = value_desc.replace("'", "\"")
             table_name = "dataset_" + str(table_name)
 
             # Insert Meta Data
             engine.execute(
-                "INSERT INTO {0}.{1} (tbl_name,val,min_year,max_year,val_desc,source) values ('{2}','{3}','{4}','{5}','{6}','{7}')".format(
-                    self.database_schema, self.meta_data_tbl,
-                    table_name, value, min_year, max_year,
-                    value_desc, "census"))
+                "INSERT INTO {0}.{1} (tbl_name,val,min_year,max_year,val_desc,source) values (%s,%s,%s,%s,%s,%s)".format(
+                    self.database_schema, self.meta_data_tbl), (
+                        table_name, value, min_year, max_year,
+                        value_desc, "census"))
 
             # Rename val column
             df.rename(columns={"PRODVAL": value}, inplace=True)
